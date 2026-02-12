@@ -131,6 +131,11 @@ async function runDiscovery(options: any) {
                     filename = `${name}-${r.digest.substring(0, 8)}${ext}`;
                 }
 
+                // Normalize .aspx/.asp to .html for easier viewing
+                if (filename.match(/\.(aspx|asp)$/i)) {
+                    filename = filename.replace(/\.(aspx|asp)$/i, '.html');
+                }
+
                 const category = Categorizer.categorize(filename, r.original);
 
                 // Construct basic ID to check for dupes in inventory logic could be improved
@@ -245,6 +250,148 @@ async function runDownload(options: any) {
                         writer.on('finish', resolve);
                         writer.on('error', reject);
                     });
+
+                    // Post-process HTML files to improve readability (inject basic CSS)
+                    if (targetPath.endsWith('.html')) {
+                        try {
+                            const content = await fs.readFile(targetPath, 'utf-8');
+                            // Check if it already has our style or just append to head/body
+                            // Offline Asset Archiving
+                            // 1. Create assets directory for this Era
+                            const assetsDir = path.join(dataDir, item.era, 'assets');
+                            await fs.ensureDir(assetsDir);
+
+                            const timestamp = item.timestamp;
+                            const waybackPrefix = `http://web.archive.org/web/${timestamp}`;
+                            const waybackImgPrefix = `http://web.archive.org/web/${timestamp}im_`;
+
+                            // Helper to resolve relative paths to absolute Wayback URLs
+                            const resolveUrl = (rel: string) => {
+                                if (rel.startsWith('http')) return rel;
+                                try {
+                                    return new URL(rel, item.originalUrl).toString();
+                                } catch (e) { return rel; }
+                            };
+
+                            // Helper to download asset
+                            const downloadAsset = async (url: string, isImage: boolean): Promise<string | null> => {
+                                try {
+                                    // Construct Wayback URL
+                                    let assetWaybackUrl = url;
+                                    if (!url.startsWith('http')) {
+                                        // It's likely a relative path we need to resolve against the original URL, then prefix
+                                        const absOriginal = resolveUrl(url);
+                                        // If it's an image, use im_ modifer, else standard
+                                        const prefix = isImage ? waybackImgPrefix : waybackPrefix;
+                                        // The prefix often already includes the http part of the target if we simply concat, 
+                                        // but Wayback URL structure is `http://web.archive.org/web/TIMESTAMP/TARGET_URL`
+                                        // If we resolved `absOriginal` it is `http://target.com/img.jpg`
+                                        // So we need: `http://web.archive.org/web/TIMESTAMPim_/http://target.com/img.jpg`
+                                        assetWaybackUrl = `${prefix}/${absOriginal}`;
+                                    } else if (!url.includes('web.archive.org')) {
+                                        // Absolute url but not pointing to wayback?
+                                        const prefix = isImage ? waybackImgPrefix : waybackPrefix;
+                                        assetWaybackUrl = `${prefix}/${url}`;
+                                    }
+
+                                    // Generate local filename (MD5 of the full Wayback URL to ensure uniqueness per version)
+                                    // Actually, MD5 of the *original* asset URL is better for deduplication across different timestamps if the asset hasn't changed?
+                                    // But we are downloading from a specific timestamp. Let's use the resulting local filename based on the Asset's URL.
+                                    // Let's use crypto to hash the Asset URL.
+                                    const crypto = require('crypto');
+                                    const hash = crypto.createHash('md5').update(assetWaybackUrl).digest('hex');
+                                    const ext = path.extname(url.split('?')[0]) || (isImage ? '.jpg' : '.css');
+                                    const localFilename = `${hash}${ext}`;
+                                    const localPath = path.join(assetsDir, localFilename);
+
+                                    // Download if not exists
+                                    if (!await fs.pathExists(localPath)) {
+                                        // logger.info(`Downloading asset: ${assetWaybackUrl}`);
+                                        const response = await require('axios')({
+                                            url: assetWaybackUrl,
+                                            method: 'GET',
+                                            responseType: 'arraybuffer', // generic for both images and text
+                                            timeout: 10000,
+                                        });
+                                        await fs.writeFile(localPath, response.data);
+                                    }
+
+                                    // Return relative path from the HTML file to the asset
+                                    // HTML is in data/{Era}/{Year}/{Category}/
+                                    // Assets are in data/{Era}/assets/
+                                    // So we need to go up 2 levels: ../../assets/
+                                    // Wait, data/Era/Year/Category -> .. (Year) -> .. (Era) -> assets. That's ../../assets
+                                    return `../../assets/${localFilename}`;
+
+                                } catch (e: any) {
+                                    // logger.debug(`Failed to download asset ${url}: ${e.message}`);
+                                    return null;
+                                }
+                            };
+
+
+                            // Regex to find src="..." and href="..."
+                            // We need to replace them asynchronously, which replace() doesn't support well with async callbacks.
+                            // So we find all matches first, process them, then replace.
+
+                            let matches: { full: string, quote: string, url: string, isImage: boolean, index: number }[] = [];
+
+                            // Find images (src)
+                            let srcRegex = /(src=["'])(.*?)(["'])/gi;
+                            let match;
+                            while ((match = srcRegex.exec(content)) !== null) {
+                                matches.push({ full: match[0], quote: match[1], url: match[2], isImage: true, index: match.index });
+                            }
+
+                            // Find CSS (href) - exclude anchors/canonical/etc if possible, but basic href is usually css in head
+                            // We should be careful not to rewrite <a href> links to pages as assets.
+                            // CSS usually in <link href="...">
+                            let linkRegex = /(<link[^>]*href=["'])(.*?)(["'])/gi;
+                            while ((match = linkRegex.exec(content)) !== null) {
+                                matches.push({ full: match[0], quote: match[1], url: match[2], isImage: false, index: match.index });
+                            }
+
+                            // Also checks for images in style attributes? Too complex for now.
+
+                            // Process matches (in parallelish)
+                            // We sort matches by index descending to replace without messing up offsets? 
+                            // Actually simply replacing the exact string is risky if duplicates.
+                            // Let's just build a map of replacements.
+
+                            const replacements = new Map<string, string>();
+
+                            for (const m of matches) {
+                                if (m.url.startsWith('data:') || m.url.startsWith('#') || m.url.startsWith('mailto:')) continue;
+
+                                // Avoid re-downloading same url multiple times in this loop
+                                if (!replacements.has(m.url)) {
+                                    const localLink = await downloadAsset(m.url, m.isImage);
+                                    if (localLink) {
+                                        replacements.set(m.url, localLink);
+                                    }
+                                }
+                            }
+
+                            // Apply replacements
+                            // We iterate again to ensure we don't double replace logic
+                            // Or stricter: Replace specific substrings. 
+
+                            let newContent = content; // Start with original content
+
+                            // Sort replacements by length descending to avoid substring collision (e.g. replacing 'spacer.gif' inside 'images/spacer.gif')
+                            const sortedReplacements = Array.from(replacements.entries()).sort((a, b) => b[0].length - a[0].length);
+
+                            for (const [originalUrl, localLink] of sortedReplacements) {
+                                // Escaping for regex replace is messy. 
+                                // Let's use split/join which is global replace for literal string
+                                newContent = newContent.split(originalUrl).join(localLink);
+                            }
+
+                            await fs.writeFile(targetPath, newContent);
+                        } catch (err) {
+                            logger.warn(`Failed to process assets for ${targetPath}: ${err}`);
+                        }
+                    }
 
                     item.status = 'downloaded';
                     item.localPath = targetPath;

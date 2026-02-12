@@ -4,59 +4,56 @@
     "era": "msbn",
     "year": 2006,
     "category": "uncategorized",
-    "filename": "eventDetails-7IKMLLYP.aspx",
+    "filename": "eventDetails-7IKMLLYP.html",
     "originalUrl": "http://www.msbn.tv:80/usavision/eventDetails.aspx?",
     "waybackUrl": "http://web.archive.org/web/20060519074007id_/http://www.msbn.tv:80/usavision/eventDetails.aspx?",
     "timestamp": "20060519074007",
     "status": "downloaded",
-    "localPath": "data\\msbn\\2006\\uncategorized\\eventDetails-7IKMLLYP.aspx"
+    "localPath": "data\\msbn\\2006\\uncategorized\\eventDetails-7IKMLLYP.html"
   },
   {
     "id": "NTBMEZMLCVZKJD7AX3MQ6FZ6MBECN5Q2",
     "era": "msbn",
     "year": 2005,
     "category": "uncategorized",
-    "filename": "eventDetails-NTBMEZML.aspx",
-    "originalUrl": "http://www.msbn.tv:80/USAVision/eventDetails.aspx?event_id=2157",
-    "waybackUrl": "http://web.archive.org/web/20050215195620id_/http://www.msbn.tv:80/USAVision/eventDetails.aspx?event_id=2157",
-    "timestamp": "20050215195620",
-    "status": "downloaded",
-    "localPath": "data\\msbn\\2005\\uncategorized\\eventDetails-NTBMEZML.aspx"
+    "filename": "eventDetails-NTBMEZML.html",
+    "originalUrl": "http://www.msbn.tv:80/usavision/eventDetails.aspx?event_id=314",
+    "waybackUrl": "http://web.archive.org/web/20050209070851id_/http://www.msbn.tv:80/usavision/eventDetails.aspx?event_id=314",
+    "timestamp": "20050209070851",
+    "status": "failed"
   },
   {
-    "id": "D5YQJRIOKDOCVRVKTXPT4YT77S4NLUAI",
+    "id": "D5YQJRIO6KBYP5JCVN344R747X54RXZK",
     "era": "msbn",
     "year": 2005,
     "category": "uncategorized",
-    "filename": "eventDetails-D5YQJRIO.aspx",
-    "originalUrl": "http://www.msbn.tv:80/usavision/eventDetails.aspx?event_id=2157",
-    "waybackUrl": "http://web.archive.org/web/20050220103449id_/http://www.msbn.tv:80/usavision/eventDetails.aspx?event_id=2157",
-    "timestamp": "20050220103449",
-    "status": "downloaded",
-    "localPath": "data\\msbn\\2005\\uncategorized\\eventDetails-D5YQJRIO.aspx"
+    "filename": "eventDetails-D5YQJRIO.html",
+    "originalUrl": "http://www.msbn.tv:80/usavision/eventDetails.aspx?event_id=1460",
+    "waybackUrl": "http://web.archive.org/web/20050215033758id_/http://www.msbn.tv:80/usavision/eventDetails.aspx?event_id=1460",
+    "timestamp": "20050215033758",
+    "status": "failed"
   },
   {
-    "id": "JPDZWW3OARYF4OUEMDAACR7PTL7CQROM",
+    "id": "JPDZWW3ONG3FTSY4SUEQZ2Q573X42N3V",
     "era": "msbn",
     "year": 2005,
     "category": "uncategorized",
-    "filename": "eventDetails-JPDZWW3O.aspx",
-    "originalUrl": "http://www.msbn.tv:80/USAVISION/eventDetails.aspx?event_id=2157",
-    "waybackUrl": "http://web.archive.org/web/20050227021046id_/http://www.msbn.tv:80/USAVISION/eventDetails.aspx?event_id=2157",
-    "timestamp": "20050227021046",
-    "status": "downloaded",
-    "localPath": "data\\msbn\\2005\\uncategorized\\eventDetails-JPDZWW3O.aspx"
+    "filename": "eventDetails-JPDZWW3O.html",
+    "originalUrl": "http://www.msbn.tv:80/usavision/eventDetails.aspx?event_id=1583",
+    "waybackUrl": "http://web.archive.org/web/20050211160356id_/http://www.msbn.tv:80/usavision/eventDetails.aspx?event_id=1583",
+    "timestamp": "20050211160356",
+    "status": "failed"
   },
   {
-    "id": "B4HMJ3CJ6UJJBAOXLLIQDEMENAD45WYA",
+    "id": "B4HMJ3CJK3Y6TY2U3TFK442I6M23666Y",
     "era": "msbn",
     "year": 2005,
     "category": "uncategorized",
-    "filename": "eventDetails-B4HMJ3CJ.aspx",
-    "originalUrl": "http://www.msbn.tv:80/USAVision/eventDetails.aspx?event_id=2158",
-    "waybackUrl": "http://web.archive.org/web/20050215201529id_/http://www.msbn.tv:80/USAVision/eventDetails.aspx?event_id=2158",
+    "filename": "eventDetails-B4HMJ3CJ.html",
+    "originalUrl": "http://www.msbn.tv:80/usavision/eventDetails.aspx?event_id=2158",
+    "waybackUrl": "http://web.archive.org/web/20050215201529id_/http://www.msbn.tv:80/usavision/eventDetails.aspx?event_id=2158",
     "timestamp": "20050215201529",
     "status": "downloaded",
-    "localPath": "data\\msbn\\2005\\uncategorized\\eventDetails-B4HMJ3CJ.aspx"
+    "localPath": "data\\msbn\\2005\\uncategorized\\eventDetails-B4HMJ3CJ.html"
   }
 ]
