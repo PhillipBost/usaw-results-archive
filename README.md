@@ -77,3 +77,9 @@ node dist/index.js --download --dry-run
 ## configuration
 
 Domains and file types are configured in `src/config.ts`.
+
+## detailed documentation
+
+- **[Project Task Log](docs/TASK_LOG.md)**: Detailed tracking of all tasks and progress.
+- **[Walkthrough](docs/WALKTHROUGH.md)**: Guide to features, offline capabilities, and verification.
+- **[Implementation Plan](docs/IMPLEMENTATION_PLAN.md)**: Technical details of the offline asset archiving system.

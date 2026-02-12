@@ -1,0 +1,53 @@
+# USAW Results Archive Scraper
+
+- [x] Project Initialization <!-- id: 0 -->
+    - [x] Create `package.json` and install dependencies (typescript, axios, fs-extra, etc.) <!-- id: 1 -->
+    - [x] Create `tsconfig.json` <!-- id: 2 -->
+    - [x] Create `.gitignore` <!-- id: 3 -->
+- [x] Core Logic Implementation <!-- id: 4 -->
+    - [x] Implement CDX API client (`src/cdx.ts`) <!-- id: 5 -->
+    - [x] Implement file downloader (`src/downloader.ts`) <!-- id: 6 -->
+    - [x] Implement main orchestration script (`src/index.ts`) <!-- id: 7 -->
+    - [x] Refine Configuration (Domains & Scope) <!-- id: 10 -->
+        - [x] Add `msbn.tv/usavision/*` <!-- id: 11 -->
+        - [x] Add `weightlifting.teamusa.org` <!-- id: 12 -->
+        - [x] Add `assets.teamusa.org` <!-- id: 13 -->
+- [x] Documentation <!-- id: 8 -->
+    - [x] Create `README.md` with historical context and usage instructions <!-- id: 9 -->
+- [x] GitHub Integration <!-- id: 14 -->
+    - [x] Initialize Git repository <!-- id: 15 -->
+    - [x] Create GitHub repository <!-- id: 16 -->
+    - [x] Push code to GitHub <!-- id: 17 -->
+- [x] Refactoring & Enhancements <!-- id: 18 -->
+    - [x] Rename git branch to `main` <!-- id: 19 -->
+    - [x] Split Discovery and Scraping (Manifest features) <!-- id: 20 -->
+        - [x] Update `src/index.ts` with new CLI flags <!-- id: 21 -->
+        - [x] Implement `discover` logic <!-- id: 22 -->
+        - [x] Implement `download` logic from manifest <!-- id: 23 -->
+- [x] Advanced Discovery & Organization <!-- id: 24 -->
+    - [x] Implement Era & Year Filtering <!-- id: 25 -->
+        - [x] Update `src/config.ts` with Era definitions <!-- id: 26 -->
+        - [x] Create `src/categorizer.ts` with user-approved keywords <!-- id: 33 -->
+        - [x] Update `src/cdx.ts` to support date range params <!-- id: 27 -->
+        - [x] Update `src/index.ts` to support eras, years, and inventory <!-- id: 28 -->
+    - [x] Implement Structured Tracking <!-- id: 29 -->
+        - [x] Generate `inventory.json` <!-- id: 30 -->
+    - [x] Refine File Organization (`data/{Era}/{Year}/{Category}`) <!-- id: 32 -->
+    - [x] Verify End-to-End Workflow <!-- id: 34 -->
+        - [x] Discovery Dry Run <!-- id: 35 -->
+        - [x] Download Verification <!-- id: 36 -->
+- [x] Maintenance <!-- id: 37 -->
+    - [x] Update .gitignore to include/exclude data as needed <!-- id: 38 -->
+    - [x] Normalize file extensions (.aspx -> .html) <!-- id: 39 -->
+    - [x] Improve readability of HTML files <!-- id: 40 -->
+        - [x] Rewrite relative links to Wayback Machine <!-- id: 42 -->
+        - [x] Revert modern CSS injection (User request) <!-- id: 44 -->
+- [x] Offline Asset Archiving <!-- id: 45 -->
+    - [x] Create `data/{Era}/assets` directory logic <!-- id: 46 -->
+    - [x] Implement asset downloading and local linking <!-- id: 47 -->
+- [ ] Targeted Mining <!-- id: 50 -->
+    - [x] Analyze `displayPage.aspx?id=396` for result links <!-- id: 51 -->
+    - [x] Ensure linked contents are covered by discovery <!-- id: 52 -->
+    - [x] Analyze `displayPage.aspx?id=1036` (Excel files) <!-- id: 53 -->
+    - [x] Verify XLS file discovery with new config <!-- id: 54 -->
+    - [x] Verify dynamic content capture for `displaypage.aspx?id=410` <!-- id: 55 -->

@@ -17,7 +17,7 @@ export const ERAS: Record<string, EraConfig> = {
     'msbn': {
         id: 'msbn',
         description: 'MSBN Era (2004-2008)',
-        targets: ['msbn.tv/usavision'],
+        targets: ['msbn.tv/usavision', 'msbn.tv/mmsysFrontEnd/*'],
         startYear: 2004,
         endYear: 2008
     },
