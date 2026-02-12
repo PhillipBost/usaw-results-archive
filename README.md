@@ -26,7 +26,7 @@ The following domains and timeframes identify where USA Weightlifting content wa
   - Results Listing: [`http://www.msbn.tv/usavision/displaypage.aspx?id=410`](https://web.archive.org/web/20040925101340/http://www.msbn.tv/usavision/displaypage.aspx?id=410)
   - PDF Document: [`http://www.msbn.tv/usavision/uploadedImages/USA_Weightlifting/pdf/April2004.pdf`](https://web.archive.org/web/20040926082204/http://www.msbn.tv/usavision/uploadedImages/USA_Weightlifting/pdf/April2004.pdf)
 
-### Era 3: Team USA / Hangastar (Jan 2008 - End 2011/2015)
+### Era 3: Team USA / Hangastar (Jan 2008 - End 2015)
 - **Redirect**: `usaweightlifting.org` -> `weightlifting.teamusa.org`
 - **System**: Hangastar (used until ~2015).
 - **Indexing**: Results were often indexed by **Sanction Number**.
@@ -51,14 +51,27 @@ npm run build
 ### running the scraper
 
 ```bash
-# General run (all configured domains)
+# General run (all configured domains - Discover & Download)
 node dist/index.js
 
-# Dry run (see what would be downloaded)
-node dist/index.js --dry-run
+# Discovery Mode (Generate inventory.json)
+node dist/index.js --discover
 
-# Limit files per domain (for testing)
-node dist/index.js --limit 5
+# Filter by Era (recommended)
+node dist/index.js --discover --era early-web
+node dist/index.js --discover --era msbn
+node dist/index.js --discover --era hangastar
+
+# Filter by Year
+node dist/index.js --discover --year 2005
+
+# Download Mode (from inventory.json)
+node dist/index.js --download
+
+# Dry run (see what would happen)
+node dist/index.js --discover --era msbn --dry-run
+node dist/index.js --download --dry-run
+
 ```
 
 ## configuration

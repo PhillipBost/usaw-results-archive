@@ -1,0 +1,90 @@
+[
+  {
+    "urlkey": "org,usaweightlifting)/03americanopenresults.html",
+    "timestamp": "20031213060615",
+    "original": "http://www.usaweightlifting.org:80/03americanopenresults.html",
+    "mimetype": "text/html",
+    "statuscode": "200",
+    "digest": "CUV4LIM3XEKCE5CATWHWTRQSAGEQA3FU",
+    "length": "10759",
+    "searchTarget": "usaweightlifting.org",
+    "waybackUrl": "http://web.archive.org/web/20031213060615id_/http://www.usaweightlifting.org:80/03americanopenresults.html"
+  },
+  {
+    "urlkey": "org,usaweightlifting)/03americanopenresults.html",
+    "timestamp": "20040417122006",
+    "original": "http://usaweightlifting.org:80/03americanopenresults.html",
+    "mimetype": "text/html",
+    "statuscode": "200",
+    "digest": "4JTBEOQTOOLWZ3AJYUZCEX36M3ED2CZ7",
+    "length": "10725",
+    "searchTarget": "usaweightlifting.org",
+    "waybackUrl": "http://web.archive.org/web/20040417122006id_/http://usaweightlifting.org:80/03americanopenresults.html"
+  },
+  {
+    "urlkey": "org,usaweightlifting)/03americanopenresults.html",
+    "timestamp": "20031213060615",
+    "original": "http://www.usaweightlifting.org:80/03americanopenresults.html",
+    "mimetype": "text/html",
+    "statuscode": "200",
+    "digest": "CUV4LIM3XEKCE5CATWHWTRQSAGEQA3FU",
+    "length": "10759",
+    "searchTarget": "*.usaweightlifting.org",
+    "waybackUrl": "http://web.archive.org/web/20031213060615id_/http://www.usaweightlifting.org:80/03americanopenresults.html"
+  },
+  {
+    "urlkey": "org,usaweightlifting)/03americanopenresults.html",
+    "timestamp": "20040417122006",
+    "original": "http://usaweightlifting.org:80/03americanopenresults.html",
+    "mimetype": "text/html",
+    "statuscode": "200",
+    "digest": "4JTBEOQTOOLWZ3AJYUZCEX36M3ED2CZ7",
+    "length": "10725",
+    "searchTarget": "*.usaweightlifting.org",
+    "waybackUrl": "http://web.archive.org/web/20040417122006id_/http://usaweightlifting.org:80/03americanopenresults.html"
+  },
+  {
+    "urlkey": "tv,msbn)/usavision/eventdetails.aspx",
+    "timestamp": "20060519074007",
+    "original": "http://www.msbn.tv:80/usavision/eventDetails.aspx?",
+    "mimetype": "text/html",
+    "statuscode": "200",
+    "digest": "7IKMLLYPPRQ6KVWQGJQ7NNQ4H4RYX5G4",
+    "length": "12230",
+    "searchTarget": "msbn.tv/usavision",
+    "waybackUrl": "http://web.archive.org/web/20060519074007id_/http://www.msbn.tv:80/usavision/eventDetails.aspx?"
+  },
+  {
+    "urlkey": "tv,msbn)/usavision/eventdetails.aspx?event_id=2157",
+    "timestamp": "20050215195620",
+    "original": "http://www.msbn.tv:80/USAVision/eventDetails.aspx?event_id=2157",
+    "mimetype": "text/html",
+    "statuscode": "200",
+    "digest": "NTBMEZMLCVZKJD7AX3MQ6FZ6MBECN5Q2",
+    "length": "6009",
+    "searchTarget": "msbn.tv/usavision",
+    "waybackUrl": "http://web.archive.org/web/20050215195620id_/http://www.msbn.tv:80/USAVision/eventDetails.aspx?event_id=2157"
+  },
+  {
+    "urlkey": "org,teamusa,weightlifting)/athlete/results/1092",
+    "timestamp": "20080703193145",
+    "original": "http://weightlifting.teamusa.org:80/athlete/results/1092",
+    "mimetype": "text/html",
+    "statuscode": "200",
+    "digest": "XRUMHVSMLNOXGD47U533ERVYLFIJYLVQ",
+    "length": "5469",
+    "searchTarget": "weightlifting.teamusa.org",
+    "waybackUrl": "http://web.archive.org/web/20080703193145id_/http://weightlifting.teamusa.org:80/athlete/results/1092"
+  },
+  {
+    "urlkey": "org,teamusa,weightlifting)/athlete/results/1092",
+    "timestamp": "20080705055413",
+    "original": "http://weightlifting.teamusa.org:80/athlete/results/1092",
+    "mimetype": "text/html",
+    "statuscode": "200",
+    "digest": "QRXTUXS4CU65UGPMLTAUX2UIBAKHQVQV",
+    "length": "5467",
+    "searchTarget": "weightlifting.teamusa.org",
+    "waybackUrl": "http://web.archive.org/web/20080705055413id_/http://weightlifting.teamusa.org:80/athlete/results/1092"
+  }
+]

@@ -1,24 +1,51 @@
+export interface EraConfig {
+    id: string;
+    description: string;
+    targets: string[];
+    startYear: number;
+    endYear: number;
+}
+
+export const ERAS: Record<string, EraConfig> = {
+    'early-web': {
+        id: 'early-web',
+        description: 'Early Web (2000-2004)',
+        targets: ['usaweightlifting.org', '*.usaweightlifting.org'],
+        startYear: 2000,
+        endYear: 2004
+    },
+    'msbn': {
+        id: 'msbn',
+        description: 'MSBN Era (2004-2008)',
+        targets: ['msbn.tv/usavision'],
+        startYear: 2004,
+        endYear: 2008
+    },
+    'hangastar': {
+        id: 'hangastar',
+        description: 'Hangastar Era (2008-2015)',
+        targets: ['weightlifting.teamusa.org', 'assets.teamusa.org'],
+        startYear: 2008,
+        endYear: 2015
+    }
+};
+
 export const CONFIG = {
-    // CDX API handles domain/* automatically if we pass just domain, but we want control
-    // We will iterate these and add /* if it looks like a domain, or use the path if specified
+    // Legacy support (will be replaced by Era logic logic in main execution if era is selected)
     SEARCH_TARGETS: [
         'usaweightlifting.org',
         '*.usaweightlifting.org',
         'msbn.tv/usavision',
         'weightlifting.teamusa.org',
-        // 'assets.teamusa.org/assets/documents' // This might be huge, let's be careful or add specific filter logic
     ],
-    // Broad filter: include various document types
     TARGET_EXTENSIONS: ['.pdf', '.xls', '.xlsx', '.doc', '.docx', '.html', '.htm'],
-    // Mime types to filter for in CDX - keeping it broad as per user request
     TARGET_MIME_TYPES: [
-        'text/html', // Added to capture HTML results pages
+        'text/html',
         'application/pdf',
         'application/vnd.ms-excel',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        // 'text/html' // explicitly excluding HTML to focus on documents
     ],
     CDX_API_URL: 'http://web.archive.org/cdx/search/cdx',
     DATA_DIR: './data',

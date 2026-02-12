@@ -14,7 +14,7 @@ export interface CdxResult {
 export class CdxClient {
     private baseUrl = CONFIG.CDX_API_URL;
 
-    async search(target: string): Promise<CdxResult[]> {
+    async search(target: string, options?: { from?: number; to?: number }): Promise<CdxResult[]> {
         // Ensure valid CDX match type. 
         // If target has no path, assume domain wildcard.
         // If target has path, we still want matchType=prefix usually, or just end with *
@@ -24,25 +24,22 @@ export class CdxClient {
             urlPattern = `${urlPattern}/*`;
         }
 
-        const params = {
+        const params: any = {
             url: urlPattern,
             output: 'json',
             fl: 'urlkey,timestamp,original,mimetype,statuscode,digest,length',
             collapse: 'digest', // Collapse by digest to avoid duplicates
             filter: [
                 'statuscode:200',
-                // We can't easily OR filters in CDX API 1-param filter, so we might need multiple queries or client-side filtering
-                // But let's try to match mime types. 
-                // Actually, CDX API 'filter' param supports regex!
-                // filter: `mimetype:(${CONFIG.TARGET_MIME_TYPES.join('|')})` -> verify if this syntax works, standard is usually just one field.
-                // It's safer to filter by !mimetype:text/html or similar, or just fetch all 200s and filter client side if volume isn't massive.
-                // Given 'usaweightlifting.org' history isn't petabytes, fetching all 200s and filtering client-side for extensions/mimes is safer/more robust.
             ],
         };
 
+        if (options?.from) params.from = options.from.toString();
+        if (options?.to) params.to = options.to.toString();
+
         try {
             // We will do a broad search for status 200 and filter client side to ensure we don't miss anything due to funky mime types
-            console.log(`CDX Request: ${this.baseUrl} with params:`, JSON.stringify({ ...params, filter: 'statuscode:200' }, null, 2));
+            // console.log(`CDX Request: ${this.baseUrl} with params:`, JSON.stringify({ ...params, filter: 'statuscode:200' }, null, 2));
             const response = await axios.get(this.baseUrl, {
                 params: {
                     ...params,
@@ -63,7 +60,7 @@ export class CdxClient {
                     return result as CdxResult;
                 });
 
-                console.log(`[DEBUG] Raw CDX results before filtering: ${results.length}`);
+                // console.log(`[DEBUG] Raw CDX results before filtering: ${results.length}`);
                 return this.filterResults(results);
             }
             return [];
@@ -89,10 +86,6 @@ export class CdxClient {
                 // Basic keywords common in result URLs
                 if (!lowerUrl.includes('result') && !lowerUrl.includes('event') && !lowerUrl.includes('meet')) {
                     // Only skip if we are strictly looking for results. 
-                    // User mentioned specific paths like /results.html, /localeventresults.html, /results/*.htm
-                    // So let's keep it if it has 'result' in path OR if it matches known patterns.
-                    // For now, let's just log and keep reasonable ones? 
-                    // Actually, scraping *every* HTML page is bad.
                     return false;
                 }
             }
