@@ -227,167 +227,310 @@ async function runDownload(options: any) {
                     await fs.ensureDir(targetDir);
                     const targetPath = path.join(targetDir, item.filename);
 
+                    // Check if file exists. If so, skip download but potentially post-process.
+                    let downloaded = false;
                     if (await fs.pathExists(targetPath)) {
-                        logger.info(`Skipping existing: ${targetPath}`);
-                        item.status = 'downloaded';
-                        item.localPath = targetPath;
-                        return;
+                        logger.info(`Skipping download (exists): ${targetPath}`);
+                        downloaded = true;
                     }
 
-                    // Download logic
-                    // We can use the CdxResult-like object or just manual axios
-                    const response = await require('axios')({
-                        url: item.waybackUrl,
-                        method: 'GET',
-                        responseType: 'stream',
-                        timeout: 30000,
-                    });
+                    if (!downloaded) {
+                        // Download logic
+                        // We can use the CdxResult-like object or just manual axios
+                        const response = await require('axios')({
+                            url: item.waybackUrl,
+                            method: 'GET',
+                            responseType: 'stream',
+                            timeout: 30000,
+                        });
 
-                    const writer = fs.createWriteStream(targetPath);
-                    response.data.pipe(writer);
+                        const writer = fs.createWriteStream(targetPath);
+                        response.data.pipe(writer);
 
-                    await new Promise((resolve, reject) => {
-                        writer.on('finish', resolve);
-                        writer.on('error', reject);
-                    });
+                        await new Promise((resolve, reject) => {
+                            writer.on('finish', resolve);
+                            writer.on('error', reject);
+                        });
+                    }
 
                     // Post-process HTML files to improve readability (inject basic CSS)
                     if (targetPath.endsWith('.html')) {
                         try {
                             const content = await fs.readFile(targetPath, 'utf-8');
-                            // Check if it already has our style or just append to head/body
+
+                            // Use Cheerio for robust HTML parsing
+                            const cheerio = require('cheerio');
+                            const $ = cheerio.load(content);
+
                             // Offline Asset Archiving
                             // 1. Create assets directory for this Era
                             const assetsDir = path.join(dataDir, item.era, 'assets');
                             await fs.ensureDir(assetsDir);
 
                             const timestamp = item.timestamp;
-                            const waybackPrefix = `http://web.archive.org/web/${timestamp}`;
+                            const waybackPrefix = `http://web.archive.org/web/${timestamp}id_`;
                             const waybackImgPrefix = `http://web.archive.org/web/${timestamp}im_`;
 
                             // Helper to resolve relative paths to absolute Wayback URLs
                             const resolveUrl = (rel: string) => {
+                                if (!rel) return '';
                                 if (rel.startsWith('http')) return rel;
                                 try {
-                                    return new URL(rel, item.originalUrl).toString();
+                                    const u = new URL(rel, item.originalUrl);
+                                    // Strip standard ports for better matching with Wayback
+                                    if ((u.protocol === 'http:' && u.port === '80') || (u.protocol === 'https:' && u.port === '443')) {
+                                        u.port = '';
+                                    }
+                                    return u.toString();
                                 } catch (e) { return rel; }
                             };
 
                             // Helper to download asset
                             const downloadAsset = async (url: string, isImage: boolean): Promise<string | null> => {
+                                if (!url) return null;
+                                let cleanUrl = url;
+                                // Double check if url has default port and strip it just in case
                                 try {
-                                    // Construct Wayback URL
-                                    let assetWaybackUrl = url;
-                                    if (!url.startsWith('http')) {
-                                        // It's likely a relative path we need to resolve against the original URL, then prefix
-                                        const absOriginal = resolveUrl(url);
-                                        // If it's an image, use im_ modifer, else standard
+                                    const u = new URL(url);
+                                    if ((u.protocol === 'http:' && u.port === '80') || (u.protocol === 'https:' && u.port === '443')) {
+                                        u.port = '';
+                                        cleanUrl = u.toString();
+                                    }
+                                } catch { }
+
+                                logger.info(`Attempting download for asset: ${cleanUrl}`);
+                                try {
+                                    // Step 1: Resolve to absolute URL if needed
+                                    let absoluteUrl = cleanUrl;
+                                    if (!cleanUrl.startsWith('http')) {
+                                        absoluteUrl = resolveUrl(cleanUrl);
+                                        logger.info(`  Resolved relative URL to: ${absoluteUrl}`);
+                                    }
+
+                                    // Step 2: Construct Wayback URL from the absolute URL
+                                    let assetWaybackUrl: string;
+                                    if (absoluteUrl.includes('web.archive.org')) {
+                                        // Already a wayback URL, use as-is
+                                        assetWaybackUrl = absoluteUrl;
+                                        logger.info(`  Already Wayback URL: ${assetWaybackUrl}`);
+                                    } else {
+                                        // Add Wayback Machine prefix
                                         const prefix = isImage ? waybackImgPrefix : waybackPrefix;
-                                        // The prefix often already includes the http part of the target if we simply concat, 
-                                        // but Wayback URL structure is `http://web.archive.org/web/TIMESTAMP/TARGET_URL`
-                                        // If we resolved `absOriginal` it is `http://target.com/img.jpg`
-                                        // So we need: `http://web.archive.org/web/TIMESTAMPim_/http://target.com/img.jpg`
-                                        assetWaybackUrl = `${prefix}/${absOriginal}`;
-                                    } else if (!url.includes('web.archive.org')) {
-                                        // Absolute url but not pointing to wayback?
-                                        const prefix = isImage ? waybackImgPrefix : waybackPrefix;
-                                        assetWaybackUrl = `${prefix}/${url}`;
+                                        assetWaybackUrl = `${prefix}/${absoluteUrl}`;
+                                        logger.info(`  Constructed Wayback URL: ${assetWaybackUrl}`);
                                     }
 
                                     // Generate local filename (MD5 of the full Wayback URL to ensure uniqueness per version)
-                                    // Actually, MD5 of the *original* asset URL is better for deduplication across different timestamps if the asset hasn't changed?
-                                    // But we are downloading from a specific timestamp. Let's use the resulting local filename based on the Asset's URL.
-                                    // Let's use crypto to hash the Asset URL.
                                     const crypto = require('crypto');
                                     const hash = crypto.createHash('md5').update(assetWaybackUrl).digest('hex');
-                                    const ext = path.extname(url.split('?')[0]) || (isImage ? '.jpg' : '.css');
-                                    const localFilename = `${hash}${ext}`;
+                                    const ext = path.extname(cleanUrl.split('?')[0]) || (isImage ? '.jpg' : '.css');
+
+                                    // Handle cases where ext might be too long or invalid
+                                    const safeExt = ext.length > 5 ? (isImage ? '.jpg' : '.css') : ext;
+                                    const localFilename = `${hash}${safeExt}`;
                                     const localPath = path.join(assetsDir, localFilename);
 
-                                    // Download if not exists
-                                    if (!await fs.pathExists(localPath)) {
-                                        // logger.info(`Downloading asset: ${assetWaybackUrl}`);
-                                        const response = await require('axios')({
-                                            url: assetWaybackUrl,
-                                            method: 'GET',
-                                            responseType: 'arraybuffer', // generic for both images and text
-                                            timeout: 10000,
-                                        });
-                                        await fs.writeFile(localPath, response.data);
+                                    // Download if not exists OR is empty (0 bytes)
+                                    const fileExists = await fs.pathExists(localPath);
+                                    const fileSize = fileExists ? (await fs.stat(localPath)).size : 0;
+
+                                    if (!fileExists || fileSize === 0) {
+                                        // Recursive function to handle Wayback redirects
+                                        const fetchWayback = async (url: string, retries = 3): Promise<any> => {
+                                            try {
+                                                const res = await require('axios')({
+                                                    url: url,
+                                                    method: 'GET',
+                                                    responseType: 'arraybuffer',
+                                                    timeout: 30000,
+                                                    maxRedirects: 0, // Manual redirect handling
+                                                    headers: {
+                                                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                                                    },
+                                                    validateStatus: (status: number) => status < 400 // Accept 3xx as success to handle manually
+                                                });
+
+                                                // Handle Redirects (3xx)
+                                                if (res.status >= 300 && res.status < 400) {
+                                                    const location = res.headers.location || res.headers.Location;
+                                                    if (location) {
+                                                        logger.info(`  Handling Wayback redirect ${res.status} to: ${location}`);
+
+                                                        // If redirect satisfies Wayback format, follow it
+                                                        if (location.includes('web.archive.org/web/')) {
+                                                            if (retries > 0) return fetchWayback(location, retries - 1);
+                                                            return null;
+                                                        }
+
+                                                        // If redirect is to live web (dead server), rewrite to Wayback
+                                                        // Extract timestamp from current URL to maintain consistency
+                                                        // Format: .../web/YYYYMMDDHHMMSSid_/http...
+                                                        const tsMatch = url.match(/\/web\/(\d{14})id_\//);
+                                                        const timestamp = tsMatch ? tsMatch[1] : item.timestamp;
+
+                                                        // Check if location is relative
+                                                        let targetUrl = location;
+                                                        if (!location.startsWith('http')) {
+                                                            // this is tricky with wayback rewriting, but let's assume absolute for now or try resolve
+                                                            try {
+                                                                const baseUrl = url.split('id_/')[1]; // original url part
+                                                                if (baseUrl) {
+                                                                    targetUrl = new URL(location, baseUrl).toString();
+                                                                }
+                                                            } catch (e) { }
+                                                        }
+
+                                                        // Construct new Wayback URL
+                                                        const waybackRedirectUrl = `http://web.archive.org/web/${timestamp}id_/${targetUrl}`;
+                                                        logger.info(`  Rewrote redirect to Wayback: ${waybackRedirectUrl}`);
+
+                                                        if (retries > 0) return fetchWayback(waybackRedirectUrl, retries - 1);
+                                                    }
+                                                    return null; // Redirect without location?
+                                                }
+                                                return res;
+                                            } catch (e: any) {
+                                                throw e;
+                                            }
+                                        };
+
+                                        try {
+                                            let response: any = null;
+                                            try {
+                                                response = await fetchWayback(assetWaybackUrl);
+                                            } catch (err: any) {
+                                                logger.warn(`  Primary fetch failed for ${cleanUrl}: ${err.message}`);
+                                            }
+
+                                            // Fallback: If response is empty or failed, try CDX API lookup
+                                            if (!response || (response.status === 200 && (!response.data || response.data.length === 0))) {
+                                                logger.warn(`Primary download failed/empty for ${cleanUrl}. Attempting CDX lookup...`);
+
+                                                try {
+                                                    // Extract original URL from Wayback URL or use cleanUrl if absolute
+                                                    let originalUrl = cleanUrl;
+                                                    if (!cleanUrl.startsWith('http')) {
+                                                        // It was relative, we need the absolute URL it resolved to
+                                                        // We can try to extract it from assetWaybackUrl or just use the absoluteUrl calculated above
+                                                        originalUrl = absoluteUrl;
+                                                    }
+
+                                                    // If absoluteUrl is a wayback url, we need to extract the original
+                                                    if (originalUrl.includes('/http')) {
+                                                        originalUrl = originalUrl.split('/http')[1];
+                                                        if (!originalUrl.startsWith('http')) originalUrl = 'http' + originalUrl;
+                                                    }
+
+                                                    // Use CDX API
+                                                    // http://web.archive.org/cdx/search/cdx?url={url}&output=json&limit=1&closest={timestamp}
+                                                    // Use the timestamp from the item we are processing to stay in sync
+                                                    const timestamp = item.timestamp || '20060101';
+                                                    const cdxUrl = `http://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(originalUrl)}&output=json&limit=1&closest=${timestamp}`;
+
+                                                    logger.info(`  Querying CDX: ${cdxUrl}`);
+                                                    const cdxRes = await require('axios').get(cdxUrl, { timeout: 15000, validateStatus: () => true });
+
+                                                    if (cdxRes.status === 200 && cdxRes.data && cdxRes.data.length > 1) {
+                                                        const row = cdxRes.data[1]; // [urlkey, timestamp, original, mimetype, statuscode, digest, length]
+                                                        const ts = row[1];
+
+                                                        // Construct direct URL
+                                                        const directUrl = `http://web.archive.org/web/${ts}id_/${originalUrl}`;
+                                                        logger.info(`  CDX found snapshot: ${directUrl}`);
+
+                                                        // Retry download with new URL
+                                                        response = await fetchWayback(directUrl);
+                                                    }
+                                                } catch (cdxErr: any) {
+                                                    logger.warn(`  CDX lookup failed: ${cdxErr.message}`);
+                                                }
+                                            }
+
+                                            // Only write if we got content and 200 OK
+                                            if (response && response.status === 200 && response.data && response.data.length > 0) {
+                                                await fs.writeFile(localPath, response.data);
+                                                logger.info(`  Downloaded asset: ${cleanUrl} (${response.data.length} bytes)`);
+                                                return localFilename;
+                                            } else {
+                                                if (response && response.status === 200 && response.data.length === 0) {
+                                                    logger.warn(`Got empty response for ${cleanUrl}`);
+                                                } else if (response) {
+                                                    logger.warn(`Failed to resolve asset ${cleanUrl} (Status: ${response.status})`);
+                                                }
+                                                return null;
+                                            }
+                                        } catch (e: any) {
+                                            logger.warn(`Failed to download asset ${cleanUrl}: ${e.message}`);
+                                            return null;
+                                        }
                                     }
 
                                     // Return relative path from the HTML file to the asset
                                     // HTML is in data/{Era}/{Year}/{Category}/
                                     // Assets are in data/{Era}/assets/
-                                    // So we need to go up 2 levels: ../../assets/
-                                    // Wait, data/Era/Year/Category -> .. (Year) -> .. (Era) -> assets. That's ../../assets
                                     return `../../assets/${localFilename}`;
 
                                 } catch (e: any) {
-                                    // logger.debug(`Failed to download asset ${url}: ${e.message}`);
+                                    logger.warn(`Failed to download asset ${cleanUrl}: ${e.message}`);
                                     return null;
                                 }
                             };
 
+                            // PHASE 1: Collect ALL asset URLs before starting any downloads
+                            // This prevents race conditions where DOM modifications interfere with URL reading
+                            const assetsToProcess: Array<{ element: any, url: string, isImage: boolean, attr: string }> = [];
 
-                            // Regex to find src="..." and href="..."
-                            // We need to replace them asynchronously, which replace() doesn't support well with async callbacks.
-                            // So we find all matches first, process them, then replace.
+                            // Collect images
+                            $('img').each((_: any, el: any) => {
+                                const src = $(el).attr('src');
+                                if (src && !src.startsWith('data:') && !src.startsWith('#') && !src.startsWith('..')) {
+                                    assetsToProcess.push({ element: el, url: src, isImage: true, attr: 'src' });
+                                }
+                            });
 
-                            let matches: { full: string, quote: string, url: string, isImage: boolean, index: number }[] = [];
+                            // Collect CSS
+                            const linkTags = $('link');
+                            logger.info(`Found ${linkTags.length} total links in ${targetPath}`);
+                            linkTags.each((_: any, el: any) => {
+                                const href = $(el).attr('href');
+                                const rel = $(el).attr('rel');
+                                const type = $(el).attr('type');
 
-                            // Find images (src)
-                            let srcRegex = /(src=["'])(.*?)(["'])/gi;
-                            let match;
-                            while ((match = srcRegex.exec(content)) !== null) {
-                                matches.push({ full: match[0], quote: match[1], url: match[2], isImage: true, index: match.index });
-                            }
+                                const isStylesheet = (rel && rel.toLowerCase().includes('stylesheet')) || (type && type.toLowerCase() === 'text/css');
 
-                            // Find CSS (href) - exclude anchors/canonical/etc if possible, but basic href is usually css in head
-                            // We should be careful not to rewrite <a href> links to pages as assets.
-                            // CSS usually in <link href="...">
-                            let linkRegex = /(<link[^>]*href=["'])(.*?)(["'])/gi;
-                            while ((match = linkRegex.exec(content)) !== null) {
-                                matches.push({ full: match[0], quote: match[1], url: match[2], isImage: false, index: match.index });
-                            }
+                                if (isStylesheet && href && !href.startsWith('data:') && !href.startsWith('#') && !href.startsWith('..')) {
+                                    logger.info(`Found stylesheet href: ${href}`);
+                                    assetsToProcess.push({ element: el, url: href, isImage: false, attr: 'href' });
+                                }
+                            });
 
-                            // Also checks for images in style attributes? Too complex for now.
+                            // Collect scripts
+                            $('script[src]').each((_: any, el: any) => {
+                                const src = $(el).attr('src');
+                                if (src && !src.startsWith('data:') && !src.startsWith('#') && !src.startsWith('..')) {
+                                    assetsToProcess.push({ element: el, url: src, isImage: false, attr: 'src' });
+                                }
+                            });
 
-                            // Process matches (in parallelish)
-                            // We sort matches by index descending to replace without messing up offsets? 
-                            // Actually simply replacing the exact string is risky if duplicates.
-                            // Let's just build a map of replacements.
+                            logger.info(`Collected ${assetsToProcess.length} assets todownload`);
 
-                            const replacements = new Map<string, string>();
+                            // PHASE 2: Download all assets and collect results
+                            const downloadPromises = assetsToProcess.map(async (asset) => {
+                                const localLink = await downloadAsset(asset.url, asset.isImage);
+                                return { asset, localLink };
+                            });
 
-                            for (const m of matches) {
-                                if (m.url.startsWith('data:') || m.url.startsWith('#') || m.url.startsWith('mailto:')) continue;
+                            const results = await Promise.all(downloadPromises);
 
-                                // Avoid re-downloading same url multiple times in this loop
-                                if (!replacements.has(m.url)) {
-                                    const localLink = await downloadAsset(m.url, m.isImage);
-                                    if (localLink) {
-                                        replacements.set(m.url, localLink);
-                                    }
+                            // PHASE 3: Apply all URL rewrites to DOM
+                            for (const { asset, localLink } of results) {
+                                if (localLink) {
+                                    $(asset.element).attr(asset.attr, localLink);
                                 }
                             }
 
-                            // Apply replacements
-                            // We iterate again to ensure we don't double replace logic
-                            // Or stricter: Replace specific substrings. 
 
-                            let newContent = content; // Start with original content
-
-                            // Sort replacements by length descending to avoid substring collision (e.g. replacing 'spacer.gif' inside 'images/spacer.gif')
-                            const sortedReplacements = Array.from(replacements.entries()).sort((a, b) => b[0].length - a[0].length);
-
-                            for (const [originalUrl, localLink] of sortedReplacements) {
-                                // Escaping for regex replace is messy. 
-                                // Let's use split/join which is global replace for literal string
-                                newContent = newContent.split(originalUrl).join(localLink);
-                            }
-
-                            await fs.writeFile(targetPath, newContent);
+                            await fs.writeFile(targetPath, $.html());
                         } catch (err) {
                             logger.warn(`Failed to process assets for ${targetPath}: ${err}`);
                         }
@@ -395,7 +538,7 @@ async function runDownload(options: any) {
 
                     item.status = 'downloaded';
                     item.localPath = targetPath;
-                    logger.info(`Downloaded: ${targetPath}`);
+                    logger.info(`Downloaded & Processed: ${targetPath}`);
                 } catch (err: any) {
                     logger.error(`Failed ${item.originalUrl}: ${err.message}`);
                     item.status = 'failed';
