@@ -1,8 +1,8 @@
 const fs = require('fs-extra');
 const path = require('path');
 
-const htmlFile = path.join(__dirname, 'data', 'msbn', '2006', 'uncategorized', 'eventDetails-7IKMLLYP.html');
-const assetsDir = path.join(__dirname, 'data', 'msbn', 'assets');
+const htmlFile = path.join(__dirname, 'data', 'msbn', '2005', 'uncategorized', 'eventDetails-EJE2E4EC.html');
+const assetsDir = path.join(__dirname, 'data', 'msbn', 'assets'); // Unused mostly now but kept for reference
 
 async function audit() {
     console.log(`Auditing: ${htmlFile}`);
@@ -23,27 +23,44 @@ async function audit() {
         let failures = 0;
 
         for (const src of assets) {
-            // Check if it's an asset in our assets dir
-            if (src.includes('assets/')) {
-                const filename = src.split('assets/')[1];
-                const localPath = path.join(assetsDir, filename);
+            if (!src || src.startsWith('data:') || src.startsWith('#') || src.startsWith('http') || src.startsWith('mailto:')) {
+                console.log(`[SKIP] External/Data: ${src}`);
+                continue;
+            }
 
-                try {
-                    const stats = await fs.stat(localPath);
-                    if (stats.size === 0) {
-                        console.log(`[FAIL] ${filename}: 0 bytes (EMPTY)`);
-                        failures++;
-                    } else if (stats.size < 100) {
-                        console.log(`[WARN] ${filename}: ${stats.size} bytes (SUSPICIOUSLY SMALL)`);
-                    } else {
-                        console.log(`[PASS] ${filename}: ${stats.size} bytes`);
-                    }
-                } catch (e) {
-                    console.log(`[FAIL] ${filename}: MISSING locally.`);
-                    failures++;
-                }
+            // JOIN PATH relative to HTML file
+            // HTML File: data/msbn/2005/uncategorized/eventDetails-EJE2E4EC.html
+            // Src: images/spacer.gif
+            // Expected: data/msbn/2005/uncategorized/images/spacer.gif
+
+            let localPath;
+            if (src.startsWith('/')) {
+                // Root relative - strictly speaking this maps to domain root
+                // For this test, we assume we mapped / to the year root?
+                // Logic in index.ts: localAssetPath = path.join(yearDir, cleanUrl.substring(1));
+                // let's try to verify that logic:
+                // We need yearDir. 
+                // HTML is in .../2005/uncategorized/...
+                // Root is .../2005/
+                const yearDir = path.resolve(path.dirname(htmlFile), '..');
+                localPath = path.join(yearDir, src.substring(1));
             } else {
-                console.log(`[INFO] External/Other src: ${src}`);
+                localPath = path.resolve(path.dirname(htmlFile), src);
+            }
+
+            try {
+                const stats = await fs.stat(localPath);
+                if (stats.size === 0) {
+                    console.log(`[FAIL] ${src} -> ${localPath}: 0 bytes (EMPTY)`);
+                    failures++;
+                } else if (stats.size < 100) {
+                    console.log(`[WARN] ${src} -> ${localPath}: ${stats.size} bytes (SUSPICIOUSLY SMALL)`);
+                } else {
+                    console.log(`[PASS] ${src} -> ${localPath}: ${stats.size} bytes`);
+                }
+            } catch (e) {
+                console.log(`[FAIL] ${src} -> ${localPath}: MISSING locally.`);
+                failures++;
             }
         }
 

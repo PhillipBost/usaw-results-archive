@@ -35,34 +35,44 @@ export class Downloader {
         const filePath = path.join(targetDir, filename);
 
         // Check if file exists and has same size (loose check)
-        // CdxResult 'length' is string, usually bytes
         if (await fs.pathExists(filePath)) {
-            // Optional: strict check with hash if we had it in CDX (digest is there but format varies)
-            // For now, skip if exists to save bandwidth
             console.log(`Skipping existing file: ${filePath}`);
             return;
         }
 
         console.log(`Downloading: ${result.original} -> ${filePath}`);
 
-        try {
-            const response = await axios({
-                url: waybackUrl,
-                method: 'GET',
-                responseType: 'stream',
-                timeout: 30000, // 30s timeout
-            });
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                const response = await axios({
+                    url: waybackUrl,
+                    method: 'GET',
+                    responseType: 'stream',
+                    timeout: 60000, // Increased timeout to 60s
+                });
 
-            const writer = fs.createWriteStream(filePath);
-            response.data.pipe(writer);
+                const writer = fs.createWriteStream(filePath);
+                response.data.pipe(writer);
 
-            return new Promise((resolve, reject) => {
-                writer.on('finish', resolve);
-                writer.on('error', reject);
-            });
-        } catch (error: any) {
-            console.error(`Failed to download ${result.original}: ${error.message}`);
-            // Don't throw, just log. We want to continue with other files.
+                await new Promise((resolve, reject) => {
+                    writer.on('finish', resolve);
+                    writer.on('error', reject);
+                });
+                return; // Success
+            } catch (error: any) {
+                console.error(`Failed to download ${result.original} (Attempt ${attempt}/3): ${error.message}`);
+
+                // Clean up partial file
+                if (await fs.pathExists(filePath)) {
+                    await fs.unlink(filePath).catch(() => { });
+                }
+
+                if (attempt < 3) {
+                    const delay = 2000 * Math.pow(2, attempt); // 4s, 8s, 16s
+                    console.log(`Retrying in ${delay}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
         }
     }
 }

@@ -49,5 +49,5 @@ export const CONFIG = {
     ],
     CDX_API_URL: 'http://web.archive.org/cdx/search/cdx',
     DATA_DIR: './data',
-    CONCURRENT_DOWNLOADS: 5,
+    CONCURRENT_DOWNLOADS: 1,
 };

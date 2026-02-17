@@ -40,12 +40,44 @@ export class CdxClient {
         try {
             // We will do a broad search for status 200 and filter client side to ensure we don't miss anything due to funky mime types
             // console.log(`CDX Request: ${this.baseUrl} with params:`, JSON.stringify({ ...params, filter: 'statuscode:200' }, null, 2));
-            const response = await axios.get(this.baseUrl, {
-                params: {
-                    ...params,
-                    filter: 'statuscode:200'
+
+            let response: any;
+            let retries = 0;
+            const maxRetries = 5;
+            let success = false;
+
+            while (!success && retries < maxRetries) {
+                try {
+                    response = await axios.get(this.baseUrl, {
+                        params: {
+                            ...params,
+                            filter: 'statuscode:200'
+                        },
+                        validateStatus: (status) => status < 400 || status === 429
+                    });
+
+                    if (response.status === 429) {
+                        const delay = Math.pow(2, retries) * 5000 + Math.random() * 1000;
+                        console.warn(`[CDX] 429 Too Many Requests. Retrying in ${Math.round(delay)}ms...`);
+                        await new Promise(res => setTimeout(res, delay));
+                        retries++;
+                        continue;
+                    }
+
+                    success = true;
+                    // Politeness delay after success
+                    await new Promise(res => setTimeout(res, 1000));
+
+                } catch (error: any) {
+                    console.error(`CDX Request failed: ${error.message}`);
+                    retries++;
+                    await new Promise(res => setTimeout(res, 2000));
                 }
-            });
+            }
+
+            if (!success || !response) {
+                throw new Error(`Failed to fetch from CDX after ${maxRetries} retries`);
+            }
 
             if (response.data && Array.isArray(response.data)) {
                 // First element is the header: ["urlkey", "timestamp", ...]
