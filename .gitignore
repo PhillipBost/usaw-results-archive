@@ -6,3 +6,5 @@ dist
 
 data/
 scripts/
+audit_results.txt
+download_log.txt
